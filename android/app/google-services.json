@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1070666957559",
+    "project_id": "arabian-majlis-3fa73",
+    "storage_bucket": "arabian-majlis-3fa73.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1070666957559:android:905f6a2b64a5162a2089f2",
+        "android_client_info": {
+          "package_name": "com.example.arabian_majlis"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6fmAdSSOeGUu-_DUwXBgT3RB4nwRLyw8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
