@@ -1,11 +1,11 @@
 {
-    "name": "arabian_majlis",
-    "short_name": "arabian_majlis",
+    "name": "Arabian Majlis",
+    "short_name": "Arabian Majlis",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "A new delivary app project.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

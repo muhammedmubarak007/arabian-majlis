@@ -20,10 +20,11 @@ class DeliveryApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: "Delivery Tracker",
       theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        brightness: Brightness.light, // Light theme
+        primaryColor: Colors.white,   // App primary color
+        scaffoldBackgroundColor: Colors.white, // App background
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,      // AppBar color
         ),
       ),
       home: const RoleSelectionScreen(),
