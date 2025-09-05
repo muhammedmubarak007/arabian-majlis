@@ -522,16 +522,14 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                           size: 24,
                         ),
                       ),
-                      title: Flexible(
-                        child: Text(
-                          "Bill #${d.bill}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                      title: Text(
+                        "Bill #${d.bill}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,7 +543,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                                 size: 14,
                               ),
                               const SizedBox(width: 4),
-                              Flexible(
+                              Expanded(
                                 child: Text(
                                   d.location,
                                   style: const TextStyle(
@@ -566,14 +564,17 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                                 size: 14,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                d.running
-                                    ? "Elapsed: ${formatTime(d.elapsedSeconds)}"
-                                    : "Ready to start",
-                                style: TextStyle(
-                                  color: d.running ? Colors.black87 : Colors.grey,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
+                              Expanded(
+                                child: Text(
+                                  d.running
+                                      ? "Elapsed: ${formatTime(d.elapsedSeconds)}"
+                                      : "Ready to start",
+                                  style: TextStyle(
+                                    color: d.running ? Colors.black87 : Colors.grey,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
