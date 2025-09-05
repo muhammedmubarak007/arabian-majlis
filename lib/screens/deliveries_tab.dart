@@ -22,12 +22,11 @@ class DeliveriesTab extends StatefulWidget {
 
 class _DeliveriesTabState extends State<DeliveriesTab> {
   String searchQuery = "";
-  String searchBy = "name"; // "name" or "location"
+  String searchBy = "name"; // "name", "location", or "billNo"
   String sortBy = "billNo"; // "billNo", "date", or "time"
 
   bool isDownloading = false;
 
-  // ----- Helper functions -----
   String formatDateOnly(DateTime? dt) {
     if (dt == null) return "N/A";
     return "${dt.day.toString().padLeft(2,'0')}/${dt.month.toString().padLeft(2,'0')}/${dt.year}";
@@ -40,6 +39,7 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
     final amPm = dt.hour >= 12 ? "PM" : "AM";
     return "$hour:$minute $amPm";
   }
+
 
   Future<void> downloadExcel(List<QueryDocumentSnapshot> deliveries) async {
     var excel = ex.Excel.createExcel();
@@ -118,7 +118,6 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -142,12 +141,18 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                       GestureDetector(
                         onTap: () {
                           setState(() {
-                            searchBy = searchBy == "name" ? "location" : "name";
+                            if (searchBy == "name") searchBy = "location";
+                            else if (searchBy == "location") searchBy = "billNo";
+                            else searchBy = "name";
                             searchQuery = "";
                           });
                         },
                         child: Icon(
-                          searchBy == "name" ? Icons.person : Icons.location_on,
+                          searchBy == "name"
+                              ? Icons.person
+                              : searchBy == "location"
+                              ? Icons.location_on
+                              : Icons.confirmation_number,
                           color: Colors.black54,
                         ),
                       ),
@@ -158,7 +163,9 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                           decoration: InputDecoration(
                             hintText: searchBy == "name"
                                 ? "Search by Name"
-                                : "Search by Location",
+                                : searchBy == "location"
+                                ? "Search by Location"
+                                : "Search by Bill No",
                             hintStyle: const TextStyle(color: Colors.black54),
                             border: InputBorder.none,
                           ),
@@ -243,8 +250,11 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                 final data = doc.data() as Map<String, dynamic>;
                 final name = (data['createdBy'] ?? "").toString().toLowerCase();
                 final location = (data['location'] ?? "").toString().toLowerCase();
+                final billNo = (data['billNo']?.toString() ?? "").toLowerCase();
                 if (query.isEmpty) return true;
-                return searchBy == "name" ? name.contains(query) : location.contains(query);
+                if (searchBy == "name") return name.contains(query);
+                if (searchBy == "location") return location.contains(query);
+                return billNo.contains(query);
               }).toList();
 
               // Sort
@@ -259,65 +269,70 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                 final startB = (dataB['startAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
 
                 final durationA = (dataA['durationMinutes'] ??
-                    ((dataA['stopAt'] as Timestamp?)?.toDate().difference(startA).inMinutes ?? 0)) as int;
-
+                    ((dataA['stopAt'] as Timestamp?)?.toDate().difference(startA).inMinutes ?? 0))
+                as int;
                 final durationB = (dataB['durationMinutes'] ??
-                    ((dataB['stopAt'] as Timestamp?)?.toDate().difference(startB).inMinutes ?? 0)) as int;
+                    ((dataB['stopAt'] as Timestamp?)?.toDate().difference(startB).inMinutes ?? 0))
+                as int;
 
                 switch (sortBy) {
                   case 'billNo':
                     return billA.compareTo(billB);
                   case 'date':
-                    return startA.compareTo(startB); // sort by full timestamp
+                    return startA.compareTo(startB);
                   case 'time':
-                    return durationA.compareTo(durationB); // sort by total time
+                    return durationA.compareTo(durationB);
                   default:
                     return 0;
                 }
               });
 
               if (deliveries.isEmpty)
-                return const Center(
-                  child: Text("No deliveries found", style: TextStyle(color: Colors.black54)),
-                );
+                return const Center(child: Text("No deliveries found", style: TextStyle(color: Colors.black54)));
 
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  columnSpacing: 18,
-                  headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
-                  dataRowColor: WidgetStateProperty.resolveWith<Color?>(
-                        (Set<WidgetState> states) {
-                      if (states.contains(WidgetState.selected)) return Colors.grey[200];
-                      return Colors.white;
-                    },
+              return Scrollbar(
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columnSpacing: 18,
+                      headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
+                      dataRowColor: MaterialStateProperty.resolveWith<Color?>(
+                            (Set<MaterialState> states) {
+                          if (states.contains(MaterialState.selected)) return Colors.grey[200];
+                          return Colors.white;
+                        },
+                      ),
+                      columns: const [
+                        DataColumn(label: Text("Bill No", style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text("Delivery Boy", style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text("Location", style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text("Date", style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text("Start Time", style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text("End Time", style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text("Total Time (mins)", style: TextStyle(fontWeight: FontWeight.bold))),
+                      ],
+                      rows: deliveries.map((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final startTime = (data['startAt'] as Timestamp?)?.toDate();
+                        final endTime = (data['stopAt'] as Timestamp?)?.toDate();
+                        final duration = data['durationMinutes'] ??
+                            ((startTime != null && endTime != null) ? endTime.difference(startTime).inMinutes : 0);
+
+                        return DataRow(cells: [
+                          DataCell(Text(data['billNo']?.toString() ?? "N/A")),
+                          DataCell(Text(data['createdBy'] ?? "Unknown")),
+                          DataCell(Text(data['location'] ?? "N/A")),
+                          DataCell(Text(formatDateOnly(startTime))),
+                          DataCell(Text(formatTimeAmPm(startTime))),
+                          DataCell(Text(formatTimeAmPm(endTime))),
+                          DataCell(Text(duration.toString())),
+                        ]);
+                      }).toList(),
+                    ),
                   ),
-                  columns: const [
-                    DataColumn(label: Text("Bill No", style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text("Delivery Boy", style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text("Location", style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text("Date", style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text("Start Time", style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text("End Time", style: TextStyle(fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text("Total Time (mins)", style: TextStyle(fontWeight: FontWeight.bold))),
-                  ],
-                  rows: deliveries.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final startTime = (data['startAt'] as Timestamp?)?.toDate();
-                    final endTime = (data['stopAt'] as Timestamp?)?.toDate();
-                    final duration = data['durationMinutes'] ??
-                        ((startTime != null && endTime != null) ? endTime.difference(startTime).inMinutes : 0);
-
-                    return DataRow(cells: [
-                      DataCell(Text(data['billNo']?.toString() ?? "N/A")),
-                      DataCell(Text(data['createdBy'] ?? "Unknown")),
-                      DataCell(Text(data['location'] ?? "N/A")),
-                      DataCell(Text(formatDateOnly(startTime))),
-                      DataCell(Text(formatTimeAmPm(startTime))),
-                      DataCell(Text(formatTimeAmPm(endTime))),
-                      DataCell(Text(duration.toString())),
-                    ]);
-                  }).toList(),
                 ),
               );
             },
