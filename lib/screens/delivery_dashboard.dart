@@ -6,19 +6,36 @@ import 'role_selection.dart';
 import 'change_password_page.dart';
 
 class DeliveryItem {
-  String bill;
-  String location;
-  DateTime? startTime;
-  int elapsedSeconds;
-  bool running;
+  final String bill;
+  final String location;
+  final DateTime? startTime;
+  final bool running;
+  final int elapsedSeconds;
 
   DeliveryItem({
     required this.bill,
     required this.location,
     this.startTime,
-    this.elapsedSeconds = 0,
     this.running = false,
+    this.elapsedSeconds = 0,
   });
+
+  // CopyWith for immutability
+  DeliveryItem copyWith({
+    String? bill,
+    String? location,
+    DateTime? startTime,
+    bool? running,
+    int? elapsedSeconds,
+  }) {
+    return DeliveryItem(
+      bill: bill ?? this.bill,
+      location: location ?? this.location,
+      startTime: startTime ?? this.startTime,
+      running: running ?? this.running,
+      elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+    );
+  }
 }
 
 class DeliveryDashboard extends StatefulWidget {
@@ -33,12 +50,12 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
   final TextEditingController billCtl = TextEditingController();
   final TextEditingController locCtl = TextEditingController();
 
-  final List<DeliveryItem> deliveries = [];
+  List<DeliveryItem> deliveries = [];
   Timer? timer;
   bool deliveriesStarted = false;
 
   bool get canAdd =>
-      (billCtl.text.trim().isNotEmpty) && (locCtl.text.trim().isNotEmpty);
+      billCtl.text.trim().isNotEmpty && locCtl.text.trim().isNotEmpty;
 
   void _addDelivery() {
     if (!canAdd) return;
@@ -59,20 +76,24 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
     if (deliveries.isEmpty) return;
 
     setState(() {
-      for (var d in deliveries) {
-        d.startTime = DateTime.now();
-        d.running = true;
-        d.elapsedSeconds = 0;
-      }
+      deliveries = deliveries
+          .map((d) => d.copyWith(
+        startTime: DateTime.now(),
+        running: true,
+        elapsedSeconds: 0,
+      ))
+          .toList();
       deliveriesStarted = true;
     });
 
     timer?.cancel();
     timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {
-        for (var d in deliveries.where((d) => d.running)) {
-          d.elapsedSeconds += 1;
-        }
+        deliveries = deliveries
+            .map((d) => d.running
+            ? d.copyWith(elapsedSeconds: d.elapsedSeconds + 1)
+            : d)
+            .toList();
       });
     });
   }
@@ -99,6 +120,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         deliveries.remove(delivery);
         if (deliveries.isEmpty) {
           deliveriesStarted = false;
+          timer?.cancel();
         }
       });
 
@@ -110,9 +132,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
           ),
           backgroundColor: Colors.black,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       );
     } catch (e) {
@@ -124,9 +145,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
           ),
           backgroundColor: Colors.red[700],
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       );
     }
@@ -169,7 +189,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         title: const Text("Logout",
-            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+            style:
+            TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         content: const Text(
           "Are you sure you want to logout?",
           style: TextStyle(color: Colors.black54),
@@ -217,7 +238,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text("Delivery Dashboard",
-            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                color: Colors.black87, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 0.5,
@@ -230,7 +252,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                 value: 'change_password',
                 child: ListTile(
                   leading: Icon(Icons.lock_reset, color: Colors.black87),
-                  title: Text('Change Password', style: TextStyle(color: Colors.black87)),
+                  title:
+                  Text('Change Password', style: TextStyle(color: Colors.black87)),
                 ),
               ),
               const PopupMenuItem<String>(
@@ -243,9 +266,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
             ],
             icon: const Icon(Icons.more_vert, color: Colors.black87),
             color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ],
       ),
@@ -272,7 +294,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                         color: Colors.grey[100],
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.person, color: Colors.black87, size: 24),
+                      child:
+                      const Icon(Icons.person, color: Colors.black87, size: 24),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -303,127 +326,131 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
 
-            // Input form & start button area, scrollable if needed
-            if (!deliveriesStarted)
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey[200]!, width: 1),
-                        ),
-                        color: Colors.white,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.local_shipping, color: Colors.black87, size: 20),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    "New Delivery",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Colors.black87),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              TextField(
-                                controller: billCtl,
-                                decoration: InputDecoration(
-                                  labelText: "Bill Number",
-                                  labelStyle: const TextStyle(color: Colors.black54),
-                                  prefixIcon: const Icon(Icons.receipt_long,
-                                      color: Colors.black87, size: 20),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: Colors.grey),
-                                  ),
-                                  focusedBorder: const OutlineInputBorder(
-                                    borderSide: BorderSide(color: Colors.black87),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: locCtl,
-                                decoration: InputDecoration(
-                                  labelText: "Delivery Location",
-                                  labelStyle: const TextStyle(color: Colors.black54),
-                                  prefixIcon: const Icon(Icons.location_on,
-                                      color: Colors.black87, size: 20),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: Colors.grey),
-                                  ),
-                                  focusedBorder: const OutlineInputBorder(
-                                    borderSide: BorderSide(color: Colors.black87),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.add_box, size: 20),
-                                  label: const Text("ADD DELIVERY"),
-                                  onPressed: canAdd ? _addDelivery : null,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: canAdd ? Colors.black87 : Colors.grey[300],
-                                    foregroundColor: canAdd ? Colors.white : Colors.grey[500],
-                                    padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+            // Input form with fixed height for Web
+            SizedBox(
+              height: 300, // adjust height as needed
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey[200]!, width: 1),
                       ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.play_arrow, size: 22),
-                          label: const Text("START ALL DELIVERIES",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 15)),
-                          onPressed: deliveries.isNotEmpty ? _startAll : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                            deliveries.isNotEmpty ? Colors.black87 : Colors.grey[300],
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.local_shipping,
+                                    color: Colors.black87, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  "New Delivery",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.black87),
+                                ),
+                              ],
                             ),
-                            elevation: 0,
-                          ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: billCtl,
+                              decoration: InputDecoration(
+                                labelText: "Bill Number",
+                                labelStyle: const TextStyle(color: Colors.black54),
+                                prefixIcon: const Icon(Icons.receipt_long,
+                                    color: Colors.black87, size: 20),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Colors.grey),
+                                ),
+                                focusedBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.black87),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[50],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: locCtl,
+                              decoration: InputDecoration(
+                                labelText: "Delivery Location",
+                                labelStyle: const TextStyle(color: Colors.black54),
+                                prefixIcon: const Icon(Icons.location_on,
+                                    color: Colors.black87, size: 20),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: Colors.grey),
+                                ),
+                                focusedBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.black87),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[50],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.add_box, size: 20),
+                                label: const Text("ADD DELIVERY"),
+                                onPressed: canAdd ? _addDelivery : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                  canAdd ? Colors.black87 : Colors.grey[300],
+                                  foregroundColor:
+                                  canAdd ? Colors.white : Colors.grey[500],
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.play_arrow, size: 22),
+                        label: const Text("START ALL DELIVERIES",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15)),
+                        onPressed: deliveries.isNotEmpty ? _startAll : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: deliveries.isNotEmpty
+                              ? Colors.black87
+                              : Colors.grey[300],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
 
-            // Active deliveries label and count
+            // Active Deliveries Label & List
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -436,7 +463,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(16),
@@ -465,29 +493,23 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
 
             const SizedBox(height: 10),
 
-            // Expanded scrollable deliveries list
             Expanded(
               child: deliveries.isEmpty
                   ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.local_shipping, size: 64, color: Colors.grey[300]),
+                    Icon(Icons.local_shipping,
+                        size: 64, color: Colors.grey[300]),
                     const SizedBox(height: 16),
                     const Text(
                       "No deliveries added",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                     const SizedBox(height: 8),
                     const Text(
                       "Add a delivery to get started",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                   ],
                 ),
@@ -517,7 +539,9 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          d.running ? Icons.delivery_dining : Icons.access_time,
+                          d.running
+                              ? Icons.delivery_dining
+                              : Icons.access_time,
                           color: Colors.black87,
                           size: 24,
                         ),
@@ -525,10 +549,9 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                       title: Text(
                         "Bill #${d.bill}",
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.black87),
                         overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Column(
@@ -570,7 +593,9 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                                       ? "Elapsed: ${formatTime(d.elapsedSeconds)}"
                                       : "Ready to start",
                                   style: TextStyle(
-                                    color: d.running ? Colors.black87 : Colors.grey,
+                                    color: d.running
+                                        ? Colors.black87
+                                        : Colors.grey,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -584,12 +609,14 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                       trailing: d.running
                           ? ElevatedButton.icon(
                         icon: const Icon(Icons.flag, size: 16),
-                        label: const Text("REACH", style: TextStyle(fontSize: 12)),
+                        label: const Text("REACH",
+                            style: TextStyle(fontSize: 12)),
                         onPressed: () => _reachDelivery(d),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -597,12 +624,14 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                       )
                           : ElevatedButton.icon(
                         icon: const Icon(Icons.cancel, size: 16),
-                        label: const Text("CANCEL", style: TextStyle(fontSize: 12)),
+                        label: const Text("CANCEL",
+                            style: TextStyle(fontSize: 12)),
                         onPressed: () => _cancelDelivery(d),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red[700],
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
