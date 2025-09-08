@@ -156,10 +156,24 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         actions: [
           PopupMenuButton<String>(
             onSelected: _handleMenuSelection,
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'change_password', child: Text('Change Password')),
-              const PopupMenuItem(value: 'logout', child: Text('Logout')),
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'change_password',
+                child: ListTile(
+                  leading: Icon(Icons.lock_reset, color: Colors.black),
+                  title: Text('Change Password', style: TextStyle(color: Colors.black)),
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: ListTile(
+                  leading: Icon(Icons.logout, color: Colors.black),
+                  title: Text('Logout', style: TextStyle(color: Colors.black)),
+                ),
+              ),
             ],
+            icon: const Icon(Icons.more_vert, color: Colors.black),
+            color: Colors.white,
           ),
         ],
       ),
