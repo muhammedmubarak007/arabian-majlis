@@ -1,6 +1,6 @@
-// admin_dashboard.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'role_selection.dart';
 import 'change_password_page.dart';
 import 'users_tab.dart';
@@ -55,6 +55,19 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
+  Future<void> _logout() async {
+    // Clear persistent login state
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+          (_) => false,
+    );
+  }
+
   void _showLogoutConfirmation() {
     showDialog(
       context: context,
@@ -62,24 +75,19 @@ class _AdminDashboardState extends State<AdminDashboard>
         return AlertDialog(
           backgroundColor: Colors.white,
           title: const Text("Logout", style: TextStyle(color: Colors.black)),
-          content: const Text("Are you sure you want to logout?",
-              style: TextStyle(color: Colors.black)),
+          content: const Text(
+            "Are you sure you want to logout?",
+            style: TextStyle(color: Colors.black),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child:
-              const Text("Cancel", style: TextStyle(color: Colors.black)),
+              child: const Text("Cancel", style: TextStyle(color: Colors.black)),
             ),
             TextButton(
-              onPressed: () async {
+              onPressed: () {
                 Navigator.of(context).pop();
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const RoleSelectionScreen()),
-                      (_) => false,
-                );
+                _logout();
               },
               child: const Text("Logout", style: TextStyle(color: Colors.red)),
             ),
@@ -93,7 +101,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      appBar: AppBar(automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -127,8 +135,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                 value: 'logout',
                 child: ListTile(
                   leading: Icon(Icons.logout, color: Colors.black),
-                  title:
-                  Text('Logout', style: TextStyle(color: Colors.black)),
+                  title: Text('Logout', style: TextStyle(color: Colors.black)),
                 ),
               ),
             ],
@@ -137,7 +144,6 @@ class _AdminDashboardState extends State<AdminDashboard>
           ),
         ],
       ),
-      // Smooth native swipe animation + preserves state with keep-alives inside tabs.
       body: TabBarView(
         controller: _tabController,
         children: const [

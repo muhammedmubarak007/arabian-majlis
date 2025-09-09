@@ -43,6 +43,7 @@ dependencies:
   excel: any                  # to generate Excel files
   path_provider: any          # to get device directories
   permission_handler: any
+  shared_preferences: ^2.1.1
 
 
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'role_selection.dart';
 import 'change_password_page.dart';
 
@@ -123,6 +124,17 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
     }
   }
 
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Clear saved login state
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+          (_) => false,
+    );
+  }
+
   void _showLogoutConfirmation() {
     showDialog(
       context: context,
@@ -132,13 +144,12 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Cancel")),
           TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushAndRemoveUntil(
-                    context, MaterialPageRoute(builder: (_) => const RoleSelectionScreen()), (_) => false);
-              },
-              child: const Text("Logout", style: TextStyle(color: Colors.red))),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _logout();
+            },
+            child: const Text("Logout", style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -148,7 +159,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      appBar: AppBar(automaticallyImplyLeading: false,
         title: const Text("Delivery Dashboard", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),

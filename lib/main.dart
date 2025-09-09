@@ -1,18 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'screens/role_selection.dart';
+import 'screens/admin_dashboard.dart';
+import 'screens/delivery_dashboard.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const DeliveryApp());
+
+  final prefs = await SharedPreferences.getInstance();
+  final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+  final isAdmin = prefs.getBool('isAdmin') ?? false;
+
+  Widget defaultHome = const RoleSelectionScreen();
+
+  if (isLoggedIn && FirebaseAuth.instance.currentUser != null) {
+    if (isAdmin) {
+      defaultHome = AdminDashboard(
+        adminEmail: '',      // Optionally store in prefs
+        adminPassword: '',   // Optionally store in prefs
+      );
+    } else {
+      defaultHome = DeliveryDashboard(
+        user: FirebaseAuth.instance.currentUser!,
+      );
+    }
+  }
+
+  runApp(DeliveryApp(home: defaultHome));
 }
 
 class DeliveryApp extends StatelessWidget {
-  const DeliveryApp({super.key});
+  final Widget home;
+
+  const DeliveryApp({super.key, required this.home});
 
   @override
   Widget build(BuildContext context) {
@@ -20,14 +46,14 @@ class DeliveryApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: "Delivery Tracker",
       theme: ThemeData(
-        brightness: Brightness.light, // Light theme
-        primaryColor: Colors.white,   // App primary color
-        scaffoldBackgroundColor: Colors.white, // App background
+        brightness: Brightness.light,
+        primaryColor: Colors.white,
+        scaffoldBackgroundColor: Colors.white,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,      // AppBar color
+          backgroundColor: Colors.white,
         ),
       ),
-      home: const RoleSelectionScreen(),
+      home: home,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'reset_password_page.dart';
 import 'admin_dashboard.dart';
 import 'delivery_dashboard.dart';
@@ -40,6 +41,8 @@ class _LoginPageState extends State<LoginPage> {
       final role = userDoc.data()?['role'];
       final isActive = userDoc.data()?['active'] ?? false;
 
+      final prefs = await SharedPreferences.getInstance();
+
       if (widget.isAdmin) {
         if (role == 'delivery') {
           // Delivery cannot access admin dashboard
@@ -58,7 +61,10 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
         } else {
-          // Admin user
+          // Admin user → Store login state
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setBool('isAdmin', true);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -70,9 +76,7 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       } else {
-        // Delivery user
         if (!isActive) {
-          // Prevent inactive delivery user from logging in
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
@@ -88,6 +92,10 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
         } else {
+          // Delivery user → Store login state
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setBool('isAdmin', false);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -135,7 +143,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,7 +155,6 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Section
                 Center(
                   child: Column(
                     children: [
@@ -177,7 +183,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 40),
 
-                // Email Field
                 const Text(
                   "Email",
                   style: TextStyle(
@@ -211,18 +216,13 @@ class _LoginPageState extends State<LoginPage> {
                     fillColor: Colors.grey[50],
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
+                    if (value == null || value.isEmpty) return 'Please enter your email';
+                    if (!value.contains('@')) return 'Please enter a valid email';
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // Password Field
                 const Text(
                   "Password",
                   style: TextStyle(
@@ -246,9 +246,7 @@ class _LoginPageState extends State<LoginPage> {
                         color: Colors.black54,
                       ),
                       onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
+                        setState(() => _obscurePassword = !_obscurePassword);
                       },
                     ),
                     border: OutlineInputBorder(
@@ -267,18 +265,13 @@ class _LoginPageState extends State<LoginPage> {
                     fillColor: Colors.grey[50],
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
+                    if (value == null || value.isEmpty) return 'Please enter your password';
+                    if (value.length < 6) return 'Password must be at least 6 characters';
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Forgot Password
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -299,7 +292,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 24),
 
-                // Login Button
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -334,7 +326,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 24),
 
-                // Additional Info
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
