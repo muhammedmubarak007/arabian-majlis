@@ -1,17 +1,15 @@
+// deliveries_tab.dart
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as ex;
 import 'dart:typed_data';
 import 'dart:io';
-import 'helper_functions.dart';
-
-/// For web download
-import 'dart:html' as html;
-
-/// For mobile share
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+// For web download
+import 'dart:html' as html;
 
 class DeliveriesTab extends StatefulWidget {
   const DeliveriesTab({super.key});
@@ -20,16 +18,31 @@ class DeliveriesTab extends StatefulWidget {
   State<DeliveriesTab> createState() => _DeliveriesTabState();
 }
 
-class _DeliveriesTabState extends State<DeliveriesTab> {
+class _DeliveriesTabState extends State<DeliveriesTab>
+    with AutomaticKeepAliveClientMixin {
   String searchQuery = "";
   String searchBy = "name"; // "name", "location", or "billNo"
   String sortBy = "billNo"; // "billNo", "date", or "time"
 
   bool isDownloading = false;
 
+  // ScrollControllers for smooth scrolling
+  final ScrollController _verticalScrollController = ScrollController();
+  final ScrollController _horizontalScrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    _verticalScrollController.dispose();
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
+
   String formatDateOnly(DateTime? dt) {
     if (dt == null) return "N/A";
-    return "${dt.day.toString().padLeft(2,'0')}/${dt.month.toString().padLeft(2,'0')}/${dt.year}";
+    return "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
   }
 
   String formatTimeAmPm(DateTime? dt) {
@@ -39,7 +52,6 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
     final amPm = dt.hour >= 12 ? "PM" : "AM";
     return "$hour:$minute $amPm";
   }
-
 
   Future<void> downloadExcel(List<QueryDocumentSnapshot> deliveries) async {
     var excel = ex.Excel.createExcel();
@@ -65,37 +77,50 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
       "End Time",
       "Total Time (mins)"
     ];
+
     for (int col = 0; col < headers.length; col++) {
-      var cell = sheet.cell(ex.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+      var cell = sheet.cell(ex.CellIndex.indexByColumnRow(
+          columnIndex: col, rowIndex: 0));
       cell.value = ex.TextCellValue(headers[col]);
       cell.cellStyle = headerStyle;
     }
 
     for (int row = 0; row < deliveries.length; row++) {
       final data = deliveries[row].data() as Map<String, dynamic>;
-      final startTime = (data['startAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final endTime = (data['stopAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final duration = data['durationMinutes'] ?? endTime.difference(startTime).inMinutes;
+      final startTime =
+          (data['startAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final endTime =
+          (data['stopAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final duration =
+          data['durationMinutes'] ?? endTime.difference(startTime).inMinutes;
 
-      sheet.cell(ex.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row + 1))
-          .value = ex.IntCellValue(int.tryParse(data['billNo']?.toString() ?? '0') ?? 0);
+      sheet
+          .cell(ex.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row + 1))
+          .value = ex.IntCellValue(
+          int.tryParse(data['billNo']?.toString() ?? '0') ?? 0);
 
-      sheet.cell(ex.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row + 1))
+      sheet
+          .cell(ex.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row + 1))
           .value = ex.TextCellValue(data['createdBy'] ?? "Unknown");
 
-      sheet.cell(ex.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row + 1))
+      sheet
+          .cell(ex.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row + 1))
           .value = ex.TextCellValue(data['location'] ?? "N/A");
 
-      sheet.cell(ex.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row + 1))
+      sheet
+          .cell(ex.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row + 1))
           .value = ex.TextCellValue(formatDateOnly(startTime));
 
-      sheet.cell(ex.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row + 1))
+      sheet
+          .cell(ex.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row + 1))
           .value = ex.TextCellValue(formatTimeAmPm(startTime));
 
-      sheet.cell(ex.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row + 1))
+      sheet
+          .cell(ex.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row + 1))
           .value = ex.TextCellValue(formatTimeAmPm(endTime));
 
-      sheet.cell(ex.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row + 1))
+      sheet
+          .cell(ex.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row + 1))
           .value = ex.IntCellValue(duration as int);
     }
 
@@ -118,10 +143,13 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context); // important for keep-alive
     return Column(
       children: [
+        // Search & Sort Row
         // Search & Sort Row
         Padding(
           padding: const EdgeInsets.all(12),
@@ -132,9 +160,9 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: Colors.grey),
                   ),
                   child: Row(
                     children: [
@@ -153,7 +181,7 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                               : searchBy == "location"
                               ? Icons.location_on
                               : Icons.confirmation_number,
-                          color: Colors.black54,
+                          color: Colors.black,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -177,37 +205,49 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Sort Dropdown
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: Colors.grey),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: sortBy,
                     dropdownColor: Colors.white,
-                    icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                    icon: const Icon(Icons.arrow_drop_down,
+                        color: Colors.black54),
                     style: const TextStyle(color: Colors.black),
                     items: const [
                       DropdownMenuItem(
                         value: "billNo",
                         child: Row(
-                          children: [Icon(Icons.confirmation_number, size: 20), SizedBox(width: 4), Text("Bill No")],
+                          children: [
+                            Icon(Icons.confirmation_number, size: 20),
+                            SizedBox(width: 4),
+                            Text("Bill No")
+                          ],
                         ),
                       ),
                       DropdownMenuItem(
                         value: "date",
                         child: Row(
-                          children: [Icon(Icons.date_range, size: 20), SizedBox(width: 4), Text("Date")],
+                          children: [
+                            Icon(Icons.date_range, size: 20),
+                            SizedBox(width: 4),
+                            Text("Date")
+                          ],
                         ),
                       ),
                       DropdownMenuItem(
                         value: "time",
                         child: Row(
-                          children: [Icon(Icons.timer, size: 20), SizedBox(width: 4), Text("Total Time")],
+                          children: [
+                            Icon(Icons.timer, size: 20),
+                            SizedBox(width: 4),
+                            Text("Total Time")
+                          ],
                         ),
                       ),
                     ],
@@ -216,18 +256,26 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Download Button
               IconButton(
                 onPressed: isDownloading
                     ? null
                     : () async {
                   setState(() => isDownloading = true);
-                  final snapshot = await FirebaseFirestore.instance.collection("deliveries").get();
+                  final snapshot = await FirebaseFirestore.instance
+                      .collection("deliveries")
+                      .get();
                   await downloadExcel(snapshot.docs);
                   setState(() => isDownloading = false);
                 },
                 icon: isDownloading
-                    ? const CircularProgressIndicator()
+                    ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
                     : const Icon(Icons.download, color: Colors.black),
                 tooltip: "Download Excel",
               ),
@@ -235,6 +283,7 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
           ),
         ),
 
+        // Deliveries Table
         // Deliveries Table
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -298,10 +347,10 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
                       columnSpacing: 18,
-                      headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
-                      dataRowColor: MaterialStateProperty.resolveWith<Color?>(
-                            (Set<MaterialState> states) {
-                          if (states.contains(MaterialState.selected)) return Colors.grey[200];
+                      headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
+                      dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                            (Set<WidgetState> states) {
+                          if (states.contains(WidgetState.selected)) return Colors.grey[200];
                           return Colors.white;
                         },
                       ),

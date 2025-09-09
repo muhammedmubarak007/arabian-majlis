@@ -1,3 +1,4 @@
+// admin_dashboard.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'role_selection.dart';
@@ -19,7 +20,27 @@ class AdminDashboard extends StatefulWidget {
   State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
-class _AdminDashboardState extends State<AdminDashboard> {
+class _AdminDashboardState extends State<AdminDashboard>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) return;
+      setState(() => _currentIndex = _tabController.index);
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   void _handleMenuSelection(String value) {
     switch (value) {
       case 'change_password':
@@ -37,15 +58,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void _showLogoutConfirmation() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
           title: const Text("Logout", style: TextStyle(color: Colors.black)),
-          content: const Text("Are you sure you want to logout?", style: TextStyle(color: Colors.black)),
+          content: const Text("Are you sure you want to logout?",
+              style: TextStyle(color: Colors.black)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Cancel", style: TextStyle(color: Colors.black)),
+              child:
+              const Text("Cancel", style: TextStyle(color: Colors.black)),
             ),
             TextButton(
               onPressed: () async {
@@ -53,7 +76,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 await FirebaseAuth.instance.signOut();
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+                  MaterialPageRoute(
+                      builder: (_) => const RoleSelectionScreen()),
                       (_) => false,
                 );
               },
@@ -67,58 +91,59 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          elevation: 1,
-          title: const Text(
-            "Admin Dashboard",
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-          ),
-          bottom: TabBar(
-            indicatorColor: Colors.black,
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.black54,
-            tabs: const [
-              Tab(text: "Users"),
-              Tab(text: "Deliveries"),
+        foregroundColor: Colors.black,
+        elevation: 1,
+        title: const Text(
+          "Admin Dashboard",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.black,
+          labelColor: Colors.black,
+          unselectedLabelColor: Colors.black54,
+          tabs: const [
+            Tab(text: "Users"),
+            Tab(text: "Deliveries"),
+          ],
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: _handleMenuSelection,
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'change_password',
+                child: ListTile(
+                  leading: Icon(Icons.lock_reset, color: Colors.black),
+                  title: Text('Change Password',
+                      style: TextStyle(color: Colors.black)),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'logout',
+                child: ListTile(
+                  leading: Icon(Icons.logout, color: Colors.black),
+                  title:
+                  Text('Logout', style: TextStyle(color: Colors.black)),
+                ),
+              ),
             ],
+            icon: const Icon(Icons.more_vert, color: Colors.black),
+            color: Colors.white,
           ),
-          actions: [
-            // Popup menu button
-            PopupMenuButton<String>(
-              onSelected: _handleMenuSelection,
-              itemBuilder: (BuildContext context) => [
-                const PopupMenuItem<String>(
-                  value: 'change_password',
-                  child: ListTile(
-                    leading: Icon(Icons.lock_reset, color: Colors.black),
-                    title: Text('Change Password', style: TextStyle(color: Colors.black)),
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'logout',
-                  child: ListTile(
-                    leading: Icon(Icons.logout, color: Colors.black),
-                    title: Text('Logout', style: TextStyle(color: Colors.black)),
-                  ),
-                ),
-              ],
-              icon: const Icon(Icons.more_vert, color: Colors.black),
-              color: Colors.white,
-            ),
-          ],
-        ),
-        body: const TabBarView(
-          children: [
-            UsersTab(),
-            DeliveriesTab(),
-          ],
-        ),
+        ],
+      ),
+      // Smooth native swipe animation + preserves state with keep-alives inside tabs.
+      body: TabBarView(
+        controller: _tabController,
+        children: const [
+          UsersTab(),
+          DeliveriesTab(),
+        ],
       ),
     );
   }

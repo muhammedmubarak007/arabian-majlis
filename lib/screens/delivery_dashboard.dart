@@ -237,7 +237,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                   children: [
                     Row(
                       children: const [
-                        Icon(Icons.local_shipping, color: Colors.black),
+                        Icon(Icons.delivery_dining, color: Colors.black),
                         SizedBox(width: 8),
                         Text("New Delivery",
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
@@ -337,7 +337,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: ListTile(
                     leading: const CircleAvatar(
-                        backgroundColor: Colors.black12, child: Icon(Icons.receipt, color: Colors.black)),
+                        backgroundColor: Colors.black12, child: Icon(Icons.delivery_dining, color: Colors.black)),
                     title: Text("Bill #${d.bill}", style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Row(
                       children: [
@@ -466,7 +466,7 @@ class _ActiveDeliveriesPageState extends State<ActiveDeliveriesPage> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: ListTile(
               leading: const CircleAvatar(
-                  backgroundColor: Colors.black12, child: Icon(Icons.local_shipping, color: Colors.black)),
+                  backgroundColor: Colors.black12, child: Icon(Icons.delivery_dining, color: Colors.black)),
               title: Text("Bill #${d.bill}", style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -479,16 +479,12 @@ class _ActiveDeliveriesPageState extends State<ActiveDeliveriesPage> {
                       Expanded(child: Text(d.location, style: const TextStyle(color: Colors.black87))),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  LinearProgressIndicator(
-                    value: (d.elapsedSeconds % 600) / 600,
-                    minHeight: 6,
-                    backgroundColor: Colors.black12,
-                    color: Colors.black87,
-                  ),
+
                   const SizedBox(height: 4),
-                  Text("Elapsed: ${formatTime(d.elapsedSeconds)}",
-                      style: const TextStyle(fontSize: 12, color: Colors.black54)),
+
+                      Text("Time: ${formatTime(d.elapsedSeconds)}",
+                          style: const TextStyle(fontSize: 12, color: Colors.black54)),
+
                 ],
               ),
               trailing: ElevatedButton.icon(

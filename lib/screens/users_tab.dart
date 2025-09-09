@@ -1,3 +1,4 @@
+// users_tab.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,11 +11,30 @@ class UsersTab extends StatefulWidget {
   State<UsersTab> createState() => _UsersTabState();
 }
 
-class _UsersTabState extends State<UsersTab> {
+class _UsersTabState extends State<UsersTab>
+    with AutomaticKeepAliveClientMixin {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _creating = false;
+
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  void _showBlackSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+        Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
 
   Future<void> _createDeliveryUserWithSecondaryApp({
     required String name,
@@ -22,14 +42,7 @@ class _UsersTabState extends State<UsersTab> {
     required String password,
   }) async {
     if (name.isEmpty || email.isEmpty || password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Enter name, valid email, and 6+ char password', style: TextStyle(color: Colors.black)),
-          backgroundColor: Colors.grey[300],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      _showBlackSnackBar('Enter name, valid email, and 6+ char password');
       return;
     }
 
@@ -37,7 +50,6 @@ class _UsersTabState extends State<UsersTab> {
 
     FirebaseApp? tempApp;
     try {
-      // Initialize a temporary secondary app to avoid switching the admin session.
       tempApp = await Firebase.initializeApp(
         name: 'admin_create',
         options: Firebase.app().options,
@@ -51,23 +63,13 @@ class _UsersTabState extends State<UsersTab> {
 
       final uid = cred.user!.uid;
 
-      // Write Firestore profile
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name': name,
-        'email': email,
-        'active': true,
-        'role': "delivery"
-      });
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .set({'name': name, 'email': email, 'active': true, 'role': "delivery"});
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Delivery user $name created', style: const TextStyle(color: Colors.black)),
-          backgroundColor: Colors.grey[300],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      _showBlackSnackBar('Delivery user $name created');
 
       _nameController.clear();
       _emailController.clear();
@@ -76,24 +78,10 @@ class _UsersTabState extends State<UsersTab> {
       setState(() {});
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Auth error: ${e.code}', style: const TextStyle(color: Colors.black)),
-          backgroundColor: Colors.grey[300],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      _showBlackSnackBar('Auth error: ${e.code}');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating user: $e', style: const TextStyle(color: Colors.black)),
-          backgroundColor: Colors.grey[300],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      _showBlackSnackBar('Error creating user: $e');
     } finally {
       try {
         await tempApp?.delete();
@@ -103,235 +91,224 @@ class _UsersTabState extends State<UsersTab> {
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Card(
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          color: Colors.white,
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const Text(
-                  'Add Delivery User',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _nameController,
-                  style: const TextStyle(color: Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Name',
-                    labelStyle: const TextStyle(color: Colors.black54),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black54),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black54),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black),
-                    ),
-                    prefixIcon: const Icon(Icons.person, color: Colors.black54),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _emailController,
-                  style: const TextStyle(color: Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    labelStyle: const TextStyle(color: Colors.black54),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black54),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black54),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black),
-                    ),
-                    prefixIcon: const Icon(Icons.email, color: Colors.black54),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _passwordController,
-                  style: const TextStyle(color: Colors.black),
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    labelStyle: const TextStyle(color: Colors.black54),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black54),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black54),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black),
-                    ),
-                    prefixIcon: const Icon(Icons.lock, color: Colors.black54),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _creating
-                        ? null
-                        : () => _createDeliveryUserWithSecondaryApp(
-                      name: _nameController.text.trim(),
-                      email: _emailController.text.trim(),
-                      password: _passwordController.text.trim(),
-                    ),
-                    icon: _creating
-                        ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ))
-                        : const Icon(Icons.add, color: Colors.white),
-                    label: Text(
-                      _creating ? 'Creating...' : 'Create Delivery User',
-                      style: const TextStyle(
-                        color: Colors.white,
+    super.build(context); // important for keep-alive
+    return Scrollbar(
+      controller: _scrollController,
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Add User Card
+            Card(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 1,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Add Delivery User',
+                      style: TextStyle(
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 2,
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _nameController,
+                      decoration: _inputDecoration('Name', Icons.person),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('users').snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.black)));
-              }
-
-              final users = snapshot.data?.docs ?? [];
-              if (users.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No delivery users added yet',
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: users.length,
-                itemBuilder: (context, index) {
-                  final userDoc = users[index];
-                  final data = userDoc.data() as Map<String, dynamic>;
-                  final uid = userDoc.id;
-                  final name = data['name'] ?? 'Unnamed';
-                  final email = data['email'] ?? 'No Email';
-                  final active = data['active'] ?? true;
-
-                  return Card(
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    elevation: 2,
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.grey[200],
-                        child: Icon(Icons.person, color: Colors.grey[600]),
-                      ),
-                      title: Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _emailController,
+                      decoration: _inputDecoration('Email', Icons.email),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: _inputDecoration('Password', Icons.lock),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _creating
+                            ? null
+                            : () => _createDeliveryUserWithSecondaryApp(
+                          name: _nameController.text.trim(),
+                          email:
+                          _emailController.text.trim(),
+                          password:
+                          _passwordController.text.trim(),
                         ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: _creating
+                            ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                            : Row(mainAxisAlignment: MainAxisAlignment.center,
+                              children: [Icon(Icons.add,color: Colors.white,),SizedBox(width: 8,),
+                                const Text(
+                                                          'Add Delivery Boy',
+                                                          style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                                                        ),
+                              ],
+                            ),
                       ),
-                      subtitle: Text(
-                        email,
-                        style: const TextStyle(color: Colors.black54),
-                      ),
-                      trailing: Switch(
-                        value: active,
-                        activeColor: Colors.black,
-                        onChanged: (val) async {
-                          try {
-                            await FirebaseFirestore.instance.collection('users').doc(uid).update({'active': val});
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'User $name has been ${val ? "enabled" : "disabled"}',
-                                  style: const TextStyle(color: Colors.black),
-                                ),
-                                backgroundColor: Colors.grey[300],
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                            );
-                          } catch (e) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Error updating user: $e',
-                                  style: const TextStyle(color: Colors.black),
-                                ),
-                                backgroundColor: Colors.grey[300],
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                            );
-                          }
-                        },
-                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Users List
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                      child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                      child: Text('Error: ${snapshot.error}',
+                          style:
+                          const TextStyle(color: Colors.black)));
+                }
+
+                final users = snapshot.data?.docs ?? [];
+                if (users.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No delivery users added yet',
+                      style: TextStyle(
+                          color: Colors.black54, fontSize: 16),
                     ),
                   );
-                },
-              );
-            },
-          ),
+                }
+
+                return ListView.builder(
+                  physics:
+                  const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final userDoc = users[index];
+                    final data =
+                    userDoc.data() as Map<String, dynamic>;
+                    final uid = userDoc.id;
+                    final name = data['name'] ?? 'Unnamed';
+                    final email = data['email'] ?? 'No Email';
+                    final active = data['active'] ?? true;
+
+                    return Card(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                          BorderRadius.circular(12)),
+                      elevation: 1,
+                      margin:
+                      const EdgeInsets.symmetric(vertical: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.black,
+                          child: const Icon(Icons.person,
+                              color: Colors.white),
+                        ),
+                        title: Text(
+                          name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
+                        ),
+                        subtitle: Text(email,
+                            style: const TextStyle(
+                                color: Colors.black54)),
+                        trailing: Switch(
+                          value: active,
+                          activeColor: Colors.black,
+                          onChanged: (val) async {
+                            try {
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(uid)
+                                  .update({'active': val});
+                              if (!mounted) return;
+                              _showBlackSnackBar(
+                                  'User $name ${val ? 'enabled' : 'disabled'}');
+                            } catch (e) {
+                              if (!mounted) return;
+                              _showBlackSnackBar(
+                                  'Error updating user: $e');
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.black54),
+      prefixIcon: Icon(icon, color: Colors.black54),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.black54),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.black54),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.black),
+      ),
     );
   }
 }
